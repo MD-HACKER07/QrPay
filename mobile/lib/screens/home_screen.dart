@@ -7,6 +7,7 @@ import 'upi_settings_screen.dart';
 import 'profile_screen.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/balance_card.dart';
+import '../widgets/secure_balance_widget.dart';
 import '../widgets/transaction_history.dart';
 import '../screens/upi_profile_screen.dart';
 import 'scan_pay_screen.dart';
@@ -272,9 +273,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                         future: transactionProvider.getUserBalance(),
                                         builder: (context, snapshot) {
                                           final balance = snapshot.data ?? auth.user?.balance ?? 0.0;
-                                          return Text(
-                                            '₹${balance.toStringAsFixed(2)}',
-                                            style: const TextStyle(
+                                          return SecureBalanceWidget(
+                                            balance: balance,
+                                            textStyle: const TextStyle(
                                               color: Colors.white,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,

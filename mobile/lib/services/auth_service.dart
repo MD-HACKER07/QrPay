@@ -297,6 +297,12 @@ class AuthService {
   /// Check if user is signed in
   static bool isSignedIn() => _currentUser != null;
 
+  /// Update current user data
+  static Future<void> updateCurrentUser(User updatedUser) async {
+    _currentUser = updatedUser;
+    await _storeUserData(updatedUser);
+  }
+
   /// Load user from storage
   static Future<User?> loadUser() async {
     try {

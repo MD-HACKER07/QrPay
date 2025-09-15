@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/upi_config_service.dart';
+import '../services/pin_service.dart';
+import '../screens/pin_management_screen.dart';
+import '../screens/pin_entry_screen.dart';
 
 class UpiSettingsScreen extends StatefulWidget {
   const UpiSettingsScreen({super.key});
@@ -154,6 +157,11 @@ class _UpiSettingsScreenState extends State<UpiSettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    
+                    // UPI PIN Section
+                    _buildPinSection(),
+                    
+                    const SizedBox(height: 24),
                     const Text(
                       'Update UPI ID',
                       style: TextStyle(
@@ -278,23 +286,297 @@ class _UpiSettingsScreenState extends State<UpiSettingsScreen> {
   }
 
   bool _isValidUpiFormat(String upiId) {
-    if (upiId.isEmpty) return false;
+    return RegExp(r'^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$').hasMatch(upiId);
+  }
 
-    // Must contain exactly one @ symbol
-    final parts = upiId.split('@');
-    if (parts.length != 2) return false;
+  Widget _buildPinSection() {
+    final hasPinSet = PinService.hasPinSetup();
+    final pinSetDate = PinService.getPinSetupDate();
 
-    final username = parts[0];
-    final provider = parts[1];
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.security,
+                  color: hasPinSet ? Colors.green : Colors.orange,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'UPI PIN Security',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: hasPinSet ? Colors.green : Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // PIN Status
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: hasPinSet 
+                    ? Colors.green.withOpacity(0.1) 
+                    : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: hasPinSet ? Colors.green : Colors.orange,
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        hasPinSet ? Icons.check_circle : Icons.warning,
+                        color: hasPinSet ? Colors.green : Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        hasPinSet ? 'PIN Configured' : 'PIN Not Set',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: hasPinSet ? Colors.green : Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hasPinSet
+                        ? 'Your UPI PIN is active and securing your transactions'
+                        : 'Set up a UPI PIN to enable payments and balance viewing',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (hasPinSet && pinSetDate != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Set on ${_formatDate(pinSetDate)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Action Buttons
+            if (!hasPinSet) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _setupPin,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Set Up UPI PIN'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _changePin,
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Change PIN'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _managePinSettings,
+                      icon: const Icon(Icons.settings),
+                      label: const Text('Manage PIN'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            
+            const SizedBox(height: 12),
+            
+            // Security Note
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue[600],
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'UPI PIN is required for all transactions and balance viewing for security',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.blue[600],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    // Username should not be empty and should be alphanumeric
-    if (username.isEmpty || !RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(username)) {
-      return false;
-    }
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
 
-    // Provider should not be empty
-    if (provider.isEmpty) return false;
+  void _setupPin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PinEntryScreen(
+          title: 'Set Up UPI PIN',
+          subtitle: 'Create a 6-digit PIN to secure your transactions',
+          isSetupMode: true,
+          onPinEntered: (pin) async {
+            final success = await PinService.setupPin(pin);
+            Navigator.pop(context);
+            
+            if (success) {
+              setState(() {}); // Refresh UI
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('UPI PIN setup complete! You can now make payments.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to set up PIN. Please try again.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
 
-    return true;
+  void _changePin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PinEntryScreen(
+          title: 'Enter Current PIN',
+          subtitle: 'Verify your current PIN to change it',
+          onPinEntered: (oldPin) async {
+            final isValid = await PinService.verifyPin(oldPin);
+            Navigator.pop(context);
+            
+            if (isValid) {
+              _showNewPinEntry(oldPin);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Incorrect PIN. Please try again.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showNewPinEntry(String oldPin) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PinEntryScreen(
+          title: 'Set New PIN',
+          subtitle: 'Create your new 6-digit UPI PIN',
+          isSetupMode: true,
+          onPinEntered: (newPin) async {
+            final success = await PinService.changePin(oldPin, newPin);
+            Navigator.pop(context);
+            
+            if (success) {
+              setState(() {}); // Refresh UI
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('PIN changed successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Failed to change PIN. Please try again.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _managePinSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const PinManagementScreen(),
+      ),
+    ).then((_) {
+      setState(() {}); // Refresh UI when returning
+    });
   }
 }

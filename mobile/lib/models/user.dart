@@ -24,6 +24,11 @@ class User {
   final bool isKycCompleted;
   final String? panNumber;
   final String? aadharNumber;
+  
+  // UPI PIN fields
+  final String? upiPin;
+  final bool hasPinSet;
+  final DateTime? pinSetAt;
 
   const User({
     required this.id,
@@ -49,6 +54,9 @@ class User {
     this.isKycCompleted = false,
     this.panNumber,
     this.aadharNumber,
+    this.upiPin,
+    this.hasPinSet = false,
+    this.pinSetAt,
   });
 
   Map<String, dynamic> toJson() {
@@ -76,6 +84,9 @@ class User {
       'isKycCompleted': isKycCompleted,
       'panNumber': panNumber,
       'aadharNumber': aadharNumber,
+      'upiPin': upiPin,
+      'hasPinSet': hasPinSet,
+      'pinSetAt': pinSetAt?.toIso8601String(),
     };
   }
 
@@ -104,6 +115,9 @@ class User {
       isKycCompleted: json['isKycCompleted'] ?? false,
       panNumber: json['panNumber'],
       aadharNumber: json['aadharNumber'],
+      upiPin: json['upiPin'],
+      hasPinSet: json['hasPinSet'] ?? false,
+      pinSetAt: json['pinSetAt'] != null ? _parseDateTime(json['pinSetAt']) : null,
     );
   }
 
@@ -147,6 +161,9 @@ class User {
     bool? isKycCompleted,
     String? panNumber,
     String? aadharNumber,
+    String? upiPin,
+    bool? hasPinSet,
+    DateTime? pinSetAt,
   }) {
     return User(
       id: id ?? this.id,
@@ -172,6 +189,9 @@ class User {
       isKycCompleted: isKycCompleted ?? this.isKycCompleted,
       panNumber: panNumber ?? this.panNumber,
       aadharNumber: aadharNumber ?? this.aadharNumber,
+      upiPin: upiPin ?? this.upiPin,
+      hasPinSet: hasPinSet ?? this.hasPinSet,
+      pinSetAt: pinSetAt ?? this.pinSetAt,
     );
   }
 }

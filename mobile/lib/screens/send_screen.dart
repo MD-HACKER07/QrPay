@@ -4,16 +4,17 @@ import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
 import '../services/upi_account_service.dart';
 import '../services/auth_service.dart';
-import '../services/transaction_service.dart';
 import '../widgets/frequent_contacts_widget.dart';
+import '../widgets/secure_balance_widget.dart';
 import '../providers/auth_provider.dart';
-import '../providers/wallet_provider.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/payment_success_animation.dart';
-import 'qr_scanner_screen.dart';
+import '../screens/upi_settings_screen.dart';
+import '../screens/pin_entry_screen.dart';
+import '../services/pin_service.dart';
 import 'user_directory_screen.dart';
-import 'upi_settings_screen.dart';
 import '../services/qr_service.dart';
+import 'qr_scanner_screen.dart';
 import 'dart:async';
 
 class SendScreen extends StatefulWidget {
@@ -148,23 +149,34 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
   }
 
   bool _isValidUpiFormat(String upiId) {
-    if (upiId.isEmpty) return false;
-
-    // Must contain exactly one @ symbol
-    final parts = upiId.split('@');
-    if (parts.length != 2) return false;
-
+    // Basic UPI ID format validation - only check structure
+    final trimmed = upiId.trim().toLowerCase();
+    
+    // Check basic format: username@provider
+    if (!trimmed.contains('@') || trimmed.split('@').length != 2) {
+      return false;
+    }
+    
+    final parts = trimmed.split('@');
     final username = parts[0];
     final provider = parts[1];
-
-    // Username should not be empty and should be alphanumeric
-    if (username.isEmpty || !RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(username)) {
+    
+    // Username validation
+    if (username.isEmpty || username.length < 3 || username.length > 50) {
+      return false;
+    }
+    
+    // Username can contain letters, numbers, dots, hyphens, underscores
+    if (!RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(username)) {
       return false;
     }
 
-    // Provider should not be empty
-    if (provider.isEmpty) return false;
-
+    // Provider should not be empty and should contain valid characters
+    if (provider.isEmpty || !RegExp(r'^[a-zA-Z0-9.-]+$').hasMatch(provider)) {
+      return false;
+    }
+    
+    // Allow all providers - validation will be done via database lookup
     return true;
   }
 
@@ -182,12 +194,26 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
       return;
     }
 
-    // Basic format validation
+    // Basic format validation - let database handle provider validation
     final trimmedUpi = upiId.trim();
     if (!_isValidUpiFormat(trimmedUpi)) {
+      String errorMessage = '⚠️ Invalid UPI ID format';
+      
+      if (!trimmedUpi.contains('@')) {
+        errorMessage = '⚠️ UPI ID must contain @ symbol';
+      } else if (trimmedUpi.split('@')[0].length < 3) {
+        errorMessage = '⚠️ Username must be at least 3 characters';
+      } else if (trimmedUpi.split('@')[0].length > 50) {
+        errorMessage = '⚠️ Username too long (max 50 characters)';
+      } else if (!RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(trimmedUpi.split('@')[0])) {
+        errorMessage = '⚠️ Username can only contain letters, numbers, dots, hyphens, underscores';
+      } else {
+        errorMessage = '⚠️ Invalid characters in provider name';
+      }
+      
       setState(() {
         _recipientDetails = null;
-        _validationMessage = '⚠️ Invalid UPI ID format';
+        _validationMessage = errorMessage;
         _isUpiValid = false;
         _isValidatingUpi = false;
       });
@@ -351,9 +377,20 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
       return;
     }
 
-    // Show confirmation dialog
-    final confirmed = await _showConfirmationDialog(amount);
-    if (!confirmed) return;
+    // Check if PIN is set up
+    if (!PinService.hasPinSetup()) {
+      _showErrorDialog(
+        'PIN Required',
+        'Please set up your UPI PIN to make transactions.',
+        actionText: 'Set PIN',
+        onAction: () => _navigateToSetupPin(),
+      );
+      return;
+    }
+
+    // Request PIN verification directly (no confirmation dialog)
+    final pinVerified = await _requestPinVerification();
+    if (!pinVerified) return;
 
     setState(() => _isSending = true);
 
@@ -380,107 +417,6 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<bool> _showConfirmationDialog(double amount) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text('Confirm Payment'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_recipientDetails != null) ...[
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.blue.shade100,
-                        backgroundImage: _recipientDetails!.profileImage != null
-                            ? NetworkImage(_recipientDetails!.profileImage!)
-                            : null,
-                        child: _recipientDetails!.profileImage == null
-                            ? Text(
-                                _recipientDetails!.displayName[0].toUpperCase(),
-                                style: TextStyle(
-                                  color: Colors.blue.shade700,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _recipientDetails!.displayName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              _recipientDetails!.upiId,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Amount:'),
-                    Text(
-                      '₹${amount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-                if (_noteController.text.trim().isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Note:'),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _noteController.text.trim(),
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Confirm'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
 
   Future<void> _processPayment({
     required String fromUserId,
@@ -494,6 +430,77 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
       toUpiId: toUpiId,
       amount: amount,
       description: description,
+    );
+  }
+
+  /// Navigate to PIN setup screen
+  void _navigateToSetupPin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PinEntryScreen(
+          title: 'Set Up UPI PIN',
+          subtitle: 'Create a 6-digit PIN to secure your transactions',
+          isSetupMode: true,
+          onPinEntered: (pin) async {
+            final success = await PinService.setupPin(pin);
+            if (success) {
+              Navigator.pop(context);
+              _showSuccessDialog('PIN Setup Complete', 'Your UPI PIN has been set up successfully.');
+            } else {
+              Navigator.pop(context);
+              _showErrorDialog('Setup Failed', 'Failed to set up PIN. Please try again.');
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Request PIN verification for transaction
+  Future<bool> _requestPinVerification() async {
+    final completer = Completer<bool>();
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PinEntryScreen(
+          title: 'Verify PIN',
+          subtitle: 'Enter your UPI PIN to complete transaction',
+          isSetupMode: false,
+          onPinEntered: (pin) async {
+            final isValid = await PinService.verifyPin(pin);
+            Navigator.pop(context);
+            completer.complete(isValid);
+          },
+        ),
+      ),
+    );
+    
+    return completer.future;
+  }
+
+  /// Show success dialog
+  void _showSuccessDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green.shade600),
+            const SizedBox(width: 12),
+            Text(title),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -582,7 +589,7 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header Card
+                      // Enhanced Header Card with Balance
                       FadeInDown(
                         duration: const Duration(milliseconds: 600),
                         child: Container(
@@ -608,26 +615,82 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
                           ),
                           child: Column(
                             children: [
-                              const Icon(
-                                Icons.send_rounded,
-                                color: Colors.white,
-                                size: 48,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Send Money',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Transfer money instantly using UPI',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.send_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Send Money',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                              const SizedBox(height: 16),
+                              // Available Balance Display
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.3),
+                                    width: 1,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Transfer money instantly using UPI',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 16,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.account_balance_wallet,
+                                      color: Colors.white.withOpacity(0.9),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Available Balance: ',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: SecureBalanceWidget(
+                                        balance: authProvider.user?.balance ?? 0.0,
+                                        textStyle: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],

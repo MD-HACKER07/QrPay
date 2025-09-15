@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/upi_config_service.dart';
+import '../widgets/secure_balance_widget.dart';
 import 'upi_settings_screen.dart';
 import 'language_settings_screen.dart';
 import 'edit_profile_screen.dart';
@@ -147,9 +148,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text(
-                          'Balance: ₹${user.balance.toStringAsFixed(2)}',
-                          style: const TextStyle(
+                        child: SecureBalanceWidget(
+                          balance: user.balance,
+                          textStyle: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

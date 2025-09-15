@@ -38,6 +38,7 @@ dependencies:
   # Security and Storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.2.2
+  crypto: ^3.0.3
   
   # HTTP and API
   http: ^1.2.2
@@ -56,8 +57,6 @@ dependencies:
   image: ^4.2.0
   zxing2: ^0.2.4
   
-  # Crypto utilities (for mock implementation)
-  crypto: ^3.0.5
   
   # UI Components
   flutter_svg: ^2.0.10+1

@@ -8,6 +8,7 @@ import '../services/firebase_service.dart';
 import '../services/qr_service.dart';
 import '../models/transaction.dart' as model;
 import '../utils/transaction_utils.dart';
+import '../widgets/secure_balance_widget.dart';
 import 'transaction_history_screen.dart';
 import 'profile_settings_screen.dart';
 import 'payment_success_screen.dart';
@@ -22,7 +23,6 @@ class UpiProfileScreen extends StatefulWidget {
 
 class _UpiProfileScreenState extends State<UpiProfileScreen> {
   double _balance = 0.0;
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -37,13 +37,10 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
         final balance = authProvider.user?.balance ?? 0.0;
         setState(() {
           _balance = balance;
-          _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      // Handle error silently
     }
   }
 
@@ -258,9 +255,9 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
                             Consumer<AuthProvider>(
                               builder: (context, auth, child) {
                                 final balance = auth.user?.balance ?? 0.0;
-                                return Text(
-                                  _isLoading ? 'Loading...' : '₹${balance.toStringAsFixed(2)}',
-                                  style: const TextStyle(
+                                return SecureBalanceWidget(
+                                  balance: balance,
+                                  textStyle: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 16,
                                   ),
