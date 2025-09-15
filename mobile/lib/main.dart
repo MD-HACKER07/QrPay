@@ -7,6 +7,7 @@ import 'config/firebase_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'providers/transaction_provider.dart';
+import 'providers/language_provider.dart';
 import 'screens/video_splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -49,9 +50,19 @@ class QrPayApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => WalletProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()..initialize()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'QrPay - Quantum-Resistant UPI Wallet',
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, _) => MaterialApp.router(
+          title: 'QrPay - Quantum-Resistant UPI Wallet',
+          locale: languageProvider.currentLocale,
+          supportedLocales: const [
+            Locale('en', 'US'),
+            Locale('hi', 'IN'),
+            Locale('es', 'ES'),
+            Locale('fr', 'FR'),
+            Locale('de', 'DE'),
+          ],
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF1976D2), // Blue like PayZapp
@@ -112,7 +123,8 @@ class QrPayApp extends StatelessWidget {
             ),
           ),
         ),
-        routerConfig: _router,
+          routerConfig: _router,
+        ),
       ),
     );
   }

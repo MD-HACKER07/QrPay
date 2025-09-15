@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/qr_service.dart';
+import '../services/biometric_service.dart';
 import 'qr_scanner_screen.dart';
 import 'payment_success_screen.dart';
 import 'pin_entry_screen.dart';
+import 'biometric_auth_screen.dart';
 import '../services/mock_transaction_service.dart';
 import '../services/transaction_service.dart';
 
@@ -118,9 +120,9 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
     final confirmed = await _showPaymentConfirmation();
     if (!confirmed) return;
 
-    // Show UPI PIN entry
-    final pinEntered = await _showUpiPinEntry();
-    if (!pinEntered) return;
+    // Show authentication flow (biometric or PIN)
+    final authSuccess = await _showAuthenticationFlow();
+    if (!authSuccess) return;
 
     setState(() => _isProcessing = true);
 
@@ -173,7 +175,51 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
     setState(() => _isProcessing = false);
   }
 
-  Future<bool> _showUpiPinEntry() async {
+  Future<bool> _showAuthenticationFlow() async {
+    // Check user's preferred authentication method
+    final authResult = await BiometricService.authenticateUser(
+      reason: 'Please authenticate to authorize this payment',
+      allowFallback: true,
+    );
+
+    if (authResult.success) {
+      return true;
+    }
+
+    if (authResult.requiresPinFallback) {
+      // Show biometric screen first if biometric is preferred
+      if (authResult.method == AuthenticationMethod.biometric) {
+        final biometricResult = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BiometricAuthScreen(
+              title: 'Authenticate Payment',
+              subtitle: 'Please authenticate to authorize this payment',
+              onAuthSuccess: () {
+                Navigator.pop(context, true);
+              },
+              onFallbackToPin: () {
+                Navigator.pop(context);
+                _showPinEntry();
+              },
+              allowPinFallback: true,
+            ),
+          ),
+        );
+        
+        if (biometricResult == true) {
+          return true;
+        }
+      }
+      
+      // Fallback to PIN entry
+      return await _showPinEntry();
+    }
+
+    return false;
+  }
+
+  Future<bool> _showPinEntry() async {
     return await Navigator.push<bool>(
       context,
       MaterialPageRoute(

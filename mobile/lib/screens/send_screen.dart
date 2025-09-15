@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
 import '../services/upi_account_service.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../widgets/frequent_contacts_widget.dart';
 import '../widgets/secure_balance_widget.dart';
 import '../providers/auth_provider.dart';
@@ -11,6 +12,7 @@ import '../providers/transaction_provider.dart';
 import '../widgets/payment_success_animation.dart';
 import '../screens/upi_settings_screen.dart';
 import '../screens/pin_entry_screen.dart';
+import '../screens/biometric_auth_screen.dart';
 import '../services/pin_service.dart';
 import 'user_directory_screen.dart';
 import '../services/qr_service.dart';
@@ -388,9 +390,9 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
       return;
     }
 
-    // Request PIN verification directly (no confirmation dialog)
-    final pinVerified = await _requestPinVerification();
-    if (!pinVerified) return;
+    // Show authentication flow (biometric or PIN)
+    final authSuccess = await _showAuthenticationFlow();
+    if (!authSuccess) return;
 
     setState(() => _isSending = true);
 
@@ -457,27 +459,64 @@ class _SendScreenState extends State<SendScreen> with TickerProviderStateMixin {
     );
   }
 
-  /// Request PIN verification for transaction
-  Future<bool> _requestPinVerification() async {
-    final completer = Completer<bool>();
-    
-    Navigator.push(
+  Future<bool> _showAuthenticationFlow() async {
+    // Check user's preferred authentication method
+    final authResult = await BiometricService.authenticateUser(
+      reason: 'Please authenticate to authorize this payment',
+      allowFallback: true,
+    );
+
+    if (authResult.success) {
+      return true;
+    }
+
+    if (authResult.requiresPinFallback) {
+      // Show biometric screen first if biometric is preferred
+      if (authResult.method == AuthenticationMethod.biometric) {
+        final biometricResult = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BiometricAuthScreen(
+              title: 'Authenticate Payment',
+              subtitle: 'Please authenticate to authorize this payment',
+              onAuthSuccess: () {
+                Navigator.pop(context, true);
+              },
+              onFallbackToPin: () {
+                Navigator.pop(context);
+                _showPinEntry();
+              },
+              allowPinFallback: true,
+            ),
+          ),
+        );
+        
+        if (biometricResult == true) {
+          return true;
+        }
+      }
+      
+      // Fallback to PIN entry
+      return await _showPinEntry();
+    }
+
+    return false;
+  }
+
+  Future<bool> _showPinEntry() async {
+    return await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => PinEntryScreen(
-          title: 'Verify PIN',
-          subtitle: 'Enter your UPI PIN to complete transaction',
-          isSetupMode: false,
-          onPinEntered: (pin) async {
-            final isValid = await PinService.verifyPin(pin);
-            Navigator.pop(context);
-            completer.complete(isValid);
+          title: 'Enter UPI PIN',
+          subtitle: 'Please enter your 6-digit UPI PIN to authorize this payment',
+          onPinEntered: (pin) {
+            Navigator.pop(context, true);
           },
+          isSetupMode: false,
         ),
       ),
-    );
-    
-    return completer.future;
+    ) ?? false;
   }
 
   /// Show success dialog

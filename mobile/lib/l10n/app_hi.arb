@@ -1,0 +1,62 @@
+{
+  "@@locale": "hi",
+  "appTitle": "QrPay",
+  
+  "home": "होम",
+  "scan": "स्कैन",
+  "send": "भेजें",
+  "history": "इतिहास",
+  "profile": "प्रोफ़ाइल",
+  "settings": "सेटिंग्स",
+  
+  "securityAuthentication": "सुरक्षा और प्रमाणीकरण",
+  "biometricAuthentication": "बायोमेट्रिक प्रमाणीकरण",
+  "enabledForPayments": "भुगतान के लिए सक्षम",
+  "disabled": "अक्षम",
+  
+  "authenticationMethod": "प्रमाणीकरण विधि",
+  "pinOnly": "केवल पिन",
+  "usePinForPayments": "सभी भुगतानों के लिए UPI पिन का उपयोग करें",
+  "biometricOnly": "केवल बायोमेट्रिक",
+  "useBiometricForPayments": "सभी भुगतानों के लिए बायोमेट्रिक का उपयोग करें",
+  "biometricPinFallback": "बायोमेट्रिक + पिन फॉलबैक",
+  "tryBiometricFirst": "पहले बायोमेट्रिक, आवश्यकता पड़ने पर पिन",
+  
+  "changeUpiPin": "UPI पिन बदलें",
+  "updateUpiPin": "लेन-देन के लिए अपना UPI पिन अपडेट करें",
+  "twoFactorAuth": "द्विकारक प्रमाणीकरण",
+  "addExtraSecurity": "अपने खाते में अतिरिक्त सुरक्षा जोड़ें",
+  
+  "general": "सामान्य",
+  "notifications": "सूचनाएं",
+  "manageNotifications": "अपनी सूचना प्राथमिकताएं प्रबंधित करें",
+  "language": "भाषा",
+  "theme": "थीम",
+  "darkMode": "डार्क मोड",
+  
+  "about": "के बारे में",
+  "helpSupport": "सहायता और समर्थन",
+  "getHelpWithQrPay": "QrPay के साथ सहायता प्राप्त करें",
+  "privacyPolicy": "गोपनीयता नीति",
+  "readPrivacyPolicy": "हमारी गोपनीयता नीति पढ़ें",
+  "aboutQrPay": "QrPay के बारे में",
+  "version": "संस्करण 1.0.0",
+  
+  "selectLanguage": "भाषा चुनें",
+  "english": "English",
+  "hindi": "हिंदी",
+  "spanish": "Español",
+  "french": "Français",
+  "german": "Deutsch",
+  
+  "cancel": "रद्द करें",
+  "confirm": "पुष्टि करें",
+  "languageChanged": "भाषा {language} में बदल दी गई",
+  "restartRequired": "भाषा परिवर्तन लागू करने के लिए कृपया ऐप को पुनः आरंभ करें",
+  
+  "biometricNotAvailable": "इस डिवाइस पर बायोमेट्रिक प्रमाणीकरण उपलब्ध नहीं है",
+  "biometricEnabled": "भुगतान के लिए बायोमेट्रिक प्रमाणीकरण सक्षम किया गया",
+  "biometricDisabled": "बायोमेट्रिक प्रमाणीकरण अक्षम किया गया",
+  "authMethodSet": "प्रमाणीकरण विधि {method} पर सेट की गई",
+  "failedToAuthenticate": "प्रमाणीकरण विफल। बायोमेट्रिक सक्षम नहीं किया गया।"
+}

@@ -1,0 +1,264 @@
+{
+  "@@locale": "en",
+  "appTitle": "QrPay",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  
+  "home": "Home",
+  "@home": {
+    "description": "Home tab label"
+  },
+  
+  "scan": "Scan",
+  "@scan": {
+    "description": "Scan tab label"
+  },
+  
+  "send": "Send",
+  "@send": {
+    "description": "Send tab label"
+  },
+  
+  "history": "History",
+  "@history": {
+    "description": "History tab label"
+  },
+  
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile tab label"
+  },
+  
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  
+  "securityAuthentication": "Security & Authentication",
+  "@securityAuthentication": {
+    "description": "Security section header"
+  },
+  
+  "biometricAuthentication": "Biometric Authentication",
+  "@biometricAuthentication": {
+    "description": "Biometric authentication setting"
+  },
+  
+  "enabledForPayments": "Enabled for payments",
+  "@enabledForPayments": {
+    "description": "Biometric enabled status"
+  },
+  
+  "disabled": "Disabled",
+  "@disabled": {
+    "description": "Biometric disabled status"
+  },
+  
+  "authenticationMethod": "Authentication Method",
+  "@authenticationMethod": {
+    "description": "Authentication method selection header"
+  },
+  
+  "pinOnly": "PIN Only",
+  "@pinOnly": {
+    "description": "PIN only authentication method"
+  },
+  
+  "usePinForPayments": "Use UPI PIN for all payments",
+  "@usePinForPayments": {
+    "description": "PIN only description"
+  },
+  
+  "biometricOnly": "Biometric Only",
+  "@biometricOnly": {
+    "description": "Biometric only authentication method"
+  },
+  
+  "useBiometricForPayments": "Use biometric for all payments",
+  "@useBiometricForPayments": {
+    "description": "Biometric only description"
+  },
+  
+  "biometricPinFallback": "Biometric + PIN Fallback",
+  "@biometricPinFallback": {
+    "description": "Biometric with PIN fallback method"
+  },
+  
+  "tryBiometricFirst": "Try biometric first, PIN if needed",
+  "@tryBiometricFirst": {
+    "description": "Biometric with fallback description"
+  },
+  
+  "changeUpiPin": "Change UPI PIN",
+  "@changeUpiPin": {
+    "description": "Change UPI PIN setting"
+  },
+  
+  "updateUpiPin": "Update your UPI PIN for transactions",
+  "@updateUpiPin": {
+    "description": "Change UPI PIN description"
+  },
+  
+  "twoFactorAuth": "Two-Factor Authentication",
+  "@twoFactorAuth": {
+    "description": "2FA setting"
+  },
+  
+  "addExtraSecurity": "Add extra security to your account",
+  "@addExtraSecurity": {
+    "description": "2FA description"
+  },
+  
+  "general": "General",
+  "@general": {
+    "description": "General settings section"
+  },
+  
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications setting"
+  },
+  
+  "manageNotifications": "Manage your notification preferences",
+  "@manageNotifications": {
+    "description": "Notifications description"
+  },
+  
+  "language": "Language",
+  "@language": {
+    "description": "Language setting"
+  },
+  
+  "theme": "Theme",
+  "@theme": {
+    "description": "Theme setting"
+  },
+  
+  "darkMode": "Dark mode",
+  "@darkMode": {
+    "description": "Dark mode description"
+  },
+  
+  "about": "About",
+  "@about": {
+    "description": "About section header"
+  },
+  
+  "helpSupport": "Help & Support",
+  "@helpSupport": {
+    "description": "Help and support setting"
+  },
+  
+  "getHelpWithQrPay": "Get help with QrPay",
+  "@getHelpWithQrPay": {
+    "description": "Help description"
+  },
+  
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy policy setting"
+  },
+  
+  "readPrivacyPolicy": "Read our privacy policy",
+  "@readPrivacyPolicy": {
+    "description": "Privacy policy description"
+  },
+  
+  "aboutQrPay": "About QrPay",
+  "@aboutQrPay": {
+    "description": "About QrPay setting"
+  },
+  
+  "version": "Version 1.0.0",
+  "@version": {
+    "description": "App version"
+  },
+  
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  
+  "english": "English",
+  "@english": {
+    "description": "English language option"
+  },
+  
+  "hindi": "हिंदी",
+  "@hindi": {
+    "description": "Hindi language option"
+  },
+  
+  "spanish": "Español",
+  "@spanish": {
+    "description": "Spanish language option"
+  },
+  
+  "french": "Français",
+  "@french": {
+    "description": "French language option"
+  },
+  
+  "german": "Deutsch",
+  "@german": {
+    "description": "German language option"
+  },
+  
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button"
+  },
+  
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm button"
+  },
+  
+  "languageChanged": "Language changed to {language}",
+  "@languageChanged": {
+    "description": "Language change confirmation message",
+    "placeholders": {
+      "language": {
+        "type": "String",
+        "example": "English"
+      }
+    }
+  },
+  
+  "restartRequired": "Please restart the app to apply language changes",
+  "@restartRequired": {
+    "description": "Restart required message"
+  },
+  
+  "biometricNotAvailable": "Biometric authentication not available on this device",
+  "@biometricNotAvailable": {
+    "description": "Biometric not available message"
+  },
+  
+  "biometricEnabled": "Biometric authentication enabled for payments",
+  "@biometricEnabled": {
+    "description": "Biometric enabled success message"
+  },
+  
+  "biometricDisabled": "Biometric authentication disabled",
+  "@biometricDisabled": {
+    "description": "Biometric disabled success message"
+  },
+  
+  "authMethodSet": "Authentication method set to {method}",
+  "@authMethodSet": {
+    "description": "Authentication method change confirmation",
+    "placeholders": {
+      "method": {
+        "type": "String",
+        "example": "PIN Only"
+      }
+    }
+  },
+  
+  "failedToAuthenticate": "Failed to authenticate. Biometric not enabled.",
+  "@failedToAuthenticate": {
+    "description": "Biometric authentication failed message"
+  }
+}

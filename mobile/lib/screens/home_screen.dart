@@ -5,6 +5,7 @@ import 'package:qrpay/models/transaction.dart';
 import 'transaction_history_screen.dart';
 import 'upi_settings_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/transaction_history.dart';
@@ -162,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
+                    builder: (context) => const SettingsScreen(),
                   ),
                 );
               },
@@ -183,42 +184,56 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: Row(
                     children: [
                       Consumer<AuthProvider>(
-                        builder: (context, auth, _) => Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(25),
-                            child: auth.user?.photoUrl != null
-                                ? Image.network(
-                                    auth.user!.photoUrl!,
-                                    width: 50,
-                                    height: 50,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Image.asset(
-                                        'assets/appstore.png',
-                                        width: 32,
-                                        height: 32,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return const Icon(
-                                                Icons.qr_code_2,
-                                                size: 32,
-                                                color: Colors.white,
-                                              );
-                                            },
-                                      );
-                                    },
-                                  )
-                                : const Icon(
-                                    Icons.account_circle,
-                                    color: Colors.white,
-                                    size: 30,
-                                  ),
+                        builder: (context, auth, _) => GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(25),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 2,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(25),
+                              child: auth.user?.photoUrl != null
+                                  ? Image.network(
+                                      auth.user!.photoUrl!,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Image.asset(
+                                          'assets/appstore.png',
+                                          width: 32,
+                                          height: 32,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Icon(
+                                                  Icons.qr_code_2,
+                                                  size: 32,
+                                                  color: Colors.white,
+                                                );
+                                              },
+                                        );
+                                      },
+                                    )
+                                  : const Icon(
+                                      Icons.account_circle,
+                                      color: Colors.white,
+                                      size: 30,
+                                    ),
+                            ),
                           ),
                         ),
                       ),

@@ -4,13 +4,17 @@ import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:local_auth/local_auth.dart';
 import '../providers/auth_provider.dart';
 import '../services/mock_transaction_service.dart';
 import '../services/firebase_service.dart';
+import '../services/pin_service.dart';
+import '../services/biometric_service.dart';
 import '../services/qr_service.dart';
 import '../utils/transaction_utils.dart';
 import '../widgets/secure_balance_widget.dart';
 import 'payment_success_screen.dart';
+import 'pin_entry_screen.dart';
 import 'dart:math';
 
 class UpiProfileScreen extends StatefulWidget {
@@ -399,6 +403,37 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
                         
                         const SizedBox(height: 16),
                         
+                        // Security Settings
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.security, color: Colors.blue.shade600, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Security Settings',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              _buildBiometricSettings(),
+                            ],
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        
                         // Money Management Buttons
                         Row(
                           children: [
@@ -688,6 +723,196 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
             child: const Text('Got it'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBiometricSettings() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getBiometricInfo(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final data = snapshot.data ?? {};
+        final isAvailable = data['available'] ?? false;
+        final isEnabled = data['enabled'] ?? false;
+        final biometricType = data['type'] as BiometricType?;
+        final preferredMethod = data['preferredMethod'] as AuthenticationMethod? ?? AuthenticationMethod.pin;
+
+        return Column(
+          children: [
+            // Biometric Authentication Toggle
+            if (isAvailable) ...[
+              Row(
+                children: [
+                  Icon(
+                    biometricType == BiometricType.face ? Icons.face : Icons.fingerprint,
+                    color: Colors.blue.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Enable ${BiometricService.getBiometricTypeName(biometricType!)} for Payments',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                  Switch(
+                    value: isEnabled,
+                    onChanged: (value) => _toggleBiometric(value),
+                    activeColor: Colors.blue.shade600,
+                  ),
+                ],
+              ),
+              
+              if (isEnabled) ...[
+                const SizedBox(height: 12),
+                // Authentication Method Selection
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Preferred Authentication Method',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...AuthenticationMethod.values.map((method) {
+                        String title, subtitle;
+                        IconData icon;
+                        
+                        switch (method) {
+                          case AuthenticationMethod.pin:
+                            title = 'PIN Only';
+                            subtitle = 'Use UPI PIN for all payments';
+                            icon = Icons.pin;
+                            break;
+                          case AuthenticationMethod.biometric:
+                            title = BiometricService.getBiometricTypeName(biometricType!);
+                            subtitle = 'Use biometric for all payments';
+                            icon = biometricType == BiometricType.face ? Icons.face : Icons.fingerprint;
+                            break;
+                          case AuthenticationMethod.both:
+                            title = 'Biometric + PIN Fallback';
+                            subtitle = 'Try biometric first, PIN if needed';
+                            icon = Icons.security;
+                            break;
+                        }
+                        
+                        return RadioListTile<AuthenticationMethod>(
+                          value: method,
+                          groupValue: preferredMethod,
+                          onChanged: (value) => _setPreferredAuthMethod(value!),
+                          title: Text(title, style: const TextStyle(fontSize: 14)),
+                          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+                          secondary: Icon(icon, size: 20),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ],
+            ] else ...[
+              Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Biometric authentication not available on this device',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> _getBiometricInfo() async {
+    final isAvailable = await BiometricService.isBiometricAvailable();
+    final isEnabled = await BiometricService.isBiometricEnabledForPayments();
+    final biometricType = await BiometricService.getPrimaryBiometricType();
+    final preferredMethod = await BiometricService.getPreferredAuthMethod();
+
+    return {
+      'available': isAvailable,
+      'enabled': isEnabled,
+      'type': biometricType,
+      'preferredMethod': preferredMethod,
+    };
+  }
+
+  void _toggleBiometric(bool enabled) async {
+    if (enabled) {
+      // Test biometric authentication before enabling
+      final success = await BiometricService.authenticateWithBiometrics(
+        reason: 'Please authenticate to enable biometric payments',
+      );
+      
+      if (success) {
+        await BiometricService.setBiometricForPayments(true);
+        setState(() {});
+        _showSuccessSnackBar('Biometric authentication enabled for payments');
+      } else {
+        _showErrorSnackBar('Failed to authenticate. Biometric not enabled.');
+      }
+    } else {
+      await BiometricService.setBiometricForPayments(false);
+      setState(() {});
+      _showSuccessSnackBar('Biometric authentication disabled');
+    }
+  }
+
+  void _setPreferredAuthMethod(AuthenticationMethod method) async {
+    await BiometricService.setPreferredAuthMethod(method);
+    setState(() {});
+    
+    String methodName;
+    switch (method) {
+      case AuthenticationMethod.pin:
+        methodName = 'PIN Only';
+        break;
+      case AuthenticationMethod.biometric:
+        methodName = 'Biometric Only';
+        break;
+      case AuthenticationMethod.both:
+        methodName = 'Biometric + PIN Fallback';
+        break;
+    }
+    
+    _showSuccessSnackBar('Authentication method set to $methodName');
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

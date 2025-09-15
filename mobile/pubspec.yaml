@@ -35,10 +35,16 @@ dependencies:
   cupertino_icons: ^1.0.8
   go_router: ^14.2.7
   
+  # Internationalization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  
   # Security and Storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.2.2
   crypto: ^3.0.3
+  local_auth: ^2.1.8
   
   # HTTP and API
   http: ^1.2.2
@@ -105,6 +111,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  
+  # Generate localization files
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   assets:

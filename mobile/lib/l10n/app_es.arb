@@ -1,0 +1,62 @@
+{
+  "@@locale": "es",
+  "appTitle": "QrPay",
+  
+  "home": "Inicio",
+  "scan": "Escanear",
+  "send": "Enviar",
+  "history": "Historial",
+  "profile": "Perfil",
+  "settings": "Configuración",
+  
+  "securityAuthentication": "Seguridad y Autenticación",
+  "biometricAuthentication": "Autenticación Biométrica",
+  "enabledForPayments": "Habilitado para pagos",
+  "disabled": "Deshabilitado",
+  
+  "authenticationMethod": "Método de Autenticación",
+  "pinOnly": "Solo PIN",
+  "usePinForPayments": "Usar PIN UPI para todos los pagos",
+  "biometricOnly": "Solo Biométrico",
+  "useBiometricForPayments": "Usar biométrico para todos los pagos",
+  "biometricPinFallback": "Biométrico + PIN de Respaldo",
+  "tryBiometricFirst": "Intentar biométrico primero, PIN si es necesario",
+  
+  "changeUpiPin": "Cambiar PIN UPI",
+  "updateUpiPin": "Actualiza tu PIN UPI para transacciones",
+  "twoFactorAuth": "Autenticación de Dos Factores",
+  "addExtraSecurity": "Agrega seguridad extra a tu cuenta",
+  
+  "general": "General",
+  "notifications": "Notificaciones",
+  "manageNotifications": "Gestiona tus preferencias de notificación",
+  "language": "Idioma",
+  "theme": "Tema",
+  "darkMode": "Modo oscuro",
+  
+  "about": "Acerca de",
+  "helpSupport": "Ayuda y Soporte",
+  "getHelpWithQrPay": "Obtén ayuda con QrPay",
+  "privacyPolicy": "Política de Privacidad",
+  "readPrivacyPolicy": "Lee nuestra política de privacidad",
+  "aboutQrPay": "Acerca de QrPay",
+  "version": "Versión 1.0.0",
+  
+  "selectLanguage": "Seleccionar Idioma",
+  "english": "English",
+  "hindi": "हिंदी",
+  "spanish": "Español",
+  "french": "Français",
+  "german": "Deutsch",
+  
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "languageChanged": "Idioma cambiado a {language}",
+  "restartRequired": "Por favor reinicia la aplicación para aplicar los cambios de idioma",
+  
+  "biometricNotAvailable": "Autenticación biométrica no disponible en este dispositivo",
+  "biometricEnabled": "Autenticación biométrica habilitada para pagos",
+  "biometricDisabled": "Autenticación biométrica deshabilitada",
+  "authMethodSet": "Método de autenticación establecido a {method}",
+  "failedToAuthenticate": "Falló la autenticación. Biométrico no habilitado."
+}
