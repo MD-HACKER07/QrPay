@@ -4,9 +4,9 @@ import '../providers/auth_provider.dart';
 import '../services/qr_service.dart';
 import 'qr_scanner_screen.dart';
 import 'payment_success_screen.dart';
+import 'pin_entry_screen.dart';
 import '../services/mock_transaction_service.dart';
 import '../services/transaction_service.dart';
-import '../services/upi_account_service.dart';
 
 class ScanPayScreen extends StatefulWidget {
   const ScanPayScreen({super.key});
@@ -114,6 +114,14 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
   Future<void> _processPayment() async {
     if (!_formKey.currentState!.validate() || _scannedUpiId == null) return;
 
+    // Show confirmation dialog first
+    final confirmed = await _showPaymentConfirmation();
+    if (!confirmed) return;
+
+    // Show UPI PIN entry
+    final pinEntered = await _showUpiPinEntry();
+    if (!pinEntered) return;
+
     setState(() => _isProcessing = true);
 
     try {
@@ -121,12 +129,6 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
       final amount = double.parse(_amountController.text);
       final note = _noteController.text.trim();
 
-      // Basic validation - just check if we can fetch account details
-      final accountDetails = await UpiAccountService.getAccountDetails(_scannedUpiId!);
-      if (accountDetails == null) {
-        throw Exception('UPI ID not found: $_scannedUpiId is not registered');
-      }
-      
       // Check self-transfer
       if (_scannedUpiId == authProvider.user?.upiId) {
         throw Exception('Cannot send money to yourself');
@@ -169,6 +171,123 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
     }
 
     setState(() => _isProcessing = false);
+  }
+
+  Future<bool> _showUpiPinEntry() async {
+    return await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PinEntryScreen(
+          title: 'Enter UPI PIN',
+          subtitle: 'Please enter your 6-digit UPI PIN to authorize this payment',
+          onPinEntered: (pin) {
+            Navigator.pop(context, true);
+          },
+          isSetupMode: false,
+        ),
+      ),
+    ) ?? false;
+  }
+
+  Future<bool> _showPaymentConfirmation() async {
+    final amount = double.tryParse(_amountController.text) ?? 0;
+    final note = _noteController.text.trim();
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Payment'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Please confirm the payment details:'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.person, size: 18, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text('To: $_merchantName', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.account_circle, size: 18, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('UPI: $_scannedUpiId', style: const TextStyle(fontSize: 13))),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.currency_rupee, size: 18, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      Text('Amount: ₹${amount.toStringAsFixed(2)}', 
+                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  if (note.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.note, size: 18, color: Colors.purple),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Note: $note', style: const TextStyle(fontSize: 13))),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.red[600], size: 18),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'This payment cannot be reversed. Please verify all details.',
+                      style: TextStyle(fontSize: 12, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Confirm & Pay'),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   Future<dynamic> _processPaymentWithFallback({
@@ -404,11 +523,21 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
                               TextFormField(
                                 controller: _amountController,
                                 decoration: InputDecoration(
-                                  labelText: 'Amount',
+                                  labelText: _presetAmount != null ? 'Amount (Merchant Suggested)' : 'Amount',
                                   hintText: '0.00',
                                   border: const OutlineInputBorder(),
                                   prefixIcon: const Icon(Icons.currency_rupee),
-                                  enabled: _presetAmount == null,
+                                  suffixIcon: _presetAmount != null 
+                                    ? IconButton(
+                                        icon: const Icon(Icons.edit, size: 20),
+                                        onPressed: () {
+                                          setState(() {
+                                            _presetAmount = null;
+                                          });
+                                        },
+                                        tooltip: 'Edit amount',
+                                      )
+                                    : null,
                                 ),
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 validator: (value) {
@@ -429,21 +558,38 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
                               if (_presetAmount != null) ...[
                                 const SizedBox(height: 8),
                                 Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange[50],
+                                    color: Colors.blue[50],
                                     borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.blue[200]!),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(Icons.info_outline, 
-                                           color: Colors.orange[600], size: 16),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Amount is preset by merchant',
-                                        style: TextStyle(
-                                          color: Colors.orange[800],
-                                          fontSize: 12,
+                                           color: Colors.blue[600], size: 18),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Merchant suggested amount: ₹$_presetAmount',
+                                              style: TextStyle(
+                                                color: Colors.blue[800],
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'You can edit this amount if needed',
+                                              style: TextStyle(
+                                                color: Colors.blue[700],
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],

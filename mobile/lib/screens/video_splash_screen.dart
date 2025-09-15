@@ -85,18 +85,10 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
       backgroundColor: const Color(0xFF667EEA),
       body: Stack(
         children: [
-          // Video background
+          // Video background - full screen
           if (_isVideoInitialized)
             Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.3),
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
-                    child: VideoPlayer(_controller),
-                  ),
-                ),
-              ),
+              child: VideoPlayer(_controller),
             ),
           
           // Fallback gradient background
@@ -114,78 +106,6 @@ class _VideoSplashScreenState extends State<VideoSplashScreen> {
                 ),
               ),
             ),
-          
-          // Logo overlay
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // App Logo
-                Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
-                        blurRadius: 25,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: Image.asset(
-                      'assets/appstore.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.qr_code_2,
-                          size: 70,
-                          color: Color(0xFF667EEA),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // App Name
-                const Text(
-                  'QrPay',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 2,
-                  ),
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // Tagline
-                const Text(
-                  'Quantum-Resistant UPI Wallet',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                    letterSpacing: 1,
-                  ),
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // Loading indicator
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 2,
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

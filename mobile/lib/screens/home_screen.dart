@@ -7,7 +7,6 @@ import 'upi_settings_screen.dart';
 import 'profile_screen.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/balance_card.dart';
-import '../widgets/secure_balance_widget.dart';
 import '../widgets/transaction_history.dart';
 import '../screens/upi_profile_screen.dart';
 import 'scan_pay_screen.dart';
@@ -245,93 +244,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 color: Colors.white70,
                                 fontSize: 14,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Consumer<AuthProvider>(
-                        builder: (context, auth, _) => Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.account_balance_wallet,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Consumer<TransactionProvider>(
-                                    builder: (context, transactionProvider, child) {
-                                      return FutureBuilder<double>(
-                                        future: transactionProvider.getUserBalance(),
-                                        builder: (context, snapshot) {
-                                          final balance = snapshot.data ?? auth.user?.balance ?? 0.0;
-                                          return SecureBalanceWidget(
-                                            balance: balance,
-                                            textStyle: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Colors.white,
-                              ),
-                              onSelected: (value) async {
-                                if (value == 'profile') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const UpiProfileScreen(),
-                                    ),
-                                  );
-                                } else if (value == 'logout') {
-                                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                                  await authProvider.signOut();
-                                  if (context.mounted) {
-                                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                                  }
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'profile',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.person),
-                                      SizedBox(width: 8),
-                                      Text('Profile'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'logout',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.logout),
-                                      SizedBox(width: 8),
-                                      Text('Logout'),
-                                    ],
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),

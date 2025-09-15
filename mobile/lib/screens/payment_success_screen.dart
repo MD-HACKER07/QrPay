@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
 import 'dart:math';
 
@@ -126,7 +125,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
@@ -134,7 +133,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
               Align(
                 alignment: Alignment.topRight,
                 child: IconButton(
-                  onPressed: () => context.pop(),
+                  onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                   icon: const Icon(Icons.close),
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.grey[100],
@@ -142,7 +141,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                 ),
               ),
               
-              Expanded(
+              Container(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height - 200,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -336,7 +338,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: () => context.pop(),
+                        onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
                         style: FilledButton.styleFrom(
                           backgroundColor: Colors.green,
                           padding: const EdgeInsets.symmetric(vertical: 16),

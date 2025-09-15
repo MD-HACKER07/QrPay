@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../providers/auth_provider.dart';
 import '../services/mock_transaction_service.dart';
 import '../services/firebase_service.dart';
 import '../services/qr_service.dart';
-import '../models/transaction.dart' as model;
 import '../utils/transaction_utils.dart';
 import '../widgets/secure_balance_widget.dart';
-import 'transaction_history_screen.dart';
-import 'profile_settings_screen.dart';
 import 'payment_success_screen.dart';
 import 'dart:math';
 
@@ -301,42 +300,53 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
                         ),
                         const SizedBox(height: 20),
                         
-                        // QR Code Placeholder or Image
+                        // QR Code with real UPI data
                         Container(
                           width: 200,
                           height: 200,
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Colors.grey[300]!),
                           ),
-                          child: auth.user!.qrCodeUrl != null
+                          child: auth.user!.upiId != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(16),
-                                  child: Image.network(
-                                    auth.user!.qrCodeUrl!,
-                                    width: 200,
-                                    height: 200,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return _buildQRFromData(auth.user!.qrData!);
-                                    },
+                                  child: QrImageView(
+                                    data: _generateUpiQrData(auth.user!.upiId!, auth.user!.name),
+                                    version: QrVersions.auto,
+                                    size: 200.0,
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.all(16),
+                                    errorCorrectionLevel: QrErrorCorrectLevel.M,
                                   ),
                                 )
-                              : (auth.user!.qrData != null 
-                                  ? _buildQRFromData(auth.user!.qrData!)
-                                  : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        _buildQRPlaceholder(),
-                                        const SizedBox(height: 12),
-                                        FilledButton.icon(
-                                          onPressed: _promptSetupUpi,
-                                          icon: const Icon(Icons.qr_code_2),
-                                          label: const Text('Generate QR'),
-                                        ),
-                                      ],
-                                    )),
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.qr_code_2,
+                                      size: 48,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Setup UPI ID\nto generate QR',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    FilledButton.icon(
+                                      onPressed: _promptSetupUpi,
+                                      icon: const Icon(Icons.qr_code_2),
+                                      label: const Text('Generate QR'),
+                                    ),
+                                  ],
+                                ),
                         ),
                         
                         const SizedBox(height: 20),
@@ -357,19 +367,7 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  // Share QR code functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text('QR code sharing feature coming soon!'),
-                                      backgroundColor: Colors.blue,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                  );
-                                },
+                                onPressed: () => _shareQRCode(auth.user!),
                                 icon: const Icon(Icons.share),
                                 label: const Text('Share'),
                                 style: ElevatedButton.styleFrom(
@@ -384,25 +382,11 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  // Download QR code functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text('QR code download feature coming soon!'),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.download),
-                                label: const Text('Save'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
+                              child: OutlinedButton.icon(
+                                onPressed: () => _copyUpiId(auth.user!.upiId!),
+                                icon: const Icon(Icons.copy),
+                                label: const Text('Copy UPI'),
+                                style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -463,49 +447,263 @@ class _UpiProfileScreenState extends State<UpiProfileScreen> {
     );
   }
 
-  Widget _buildQRPlaceholder() {
-    return Container(
-      width: 200,
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: const Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.qr_code_2,
-            size: 48,
-            color: Colors.grey,
+  String _generateUpiQrData(String upiId, String name) {
+    // Generate UPI QR code data in standard format
+    // Format: upi://pay?pa=UPI_ID&pn=NAME&cu=INR
+    return 'upi://pay?pa=$upiId&pn=${Uri.encodeComponent(name)}&cu=INR';
+  }
+
+  Future<void> _shareQRCode(user) async {
+    try {
+      if (user.upiId == null) {
+        _showErrorSnackBar('UPI ID not set up yet');
+        return;
+      }
+
+      final shareText = '''💳 Pay me using UPI\n\nUPI ID: ${user.upiId}\nName: ${user.name}\n\nScan QR code or use UPI ID to send money instantly!\n\n🔒 Powered by QrPay - Secure & Fast Payments''';
+      
+      await Share.share(
+        shareText,
+        subject: 'Pay ${user.name} - QrPay',
+      );
+      
+      // Add haptic feedback
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      _showErrorSnackBar('Failed to share QR code: ${e.toString()}');
+    }
+  }
+
+  Future<void> _copyUpiId(String upiId) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: upiId));
+      HapticFeedback.selectionClick();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text('UPI ID copied: $upiId'),
+            ],
           ),
-          SizedBox(height: 8),
-          Text(
-            'QR Code',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 16,
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackBar('Failed to copy UPI ID');
+    }
+  }
+
+  void _showQROptions(BuildContext context, user) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
+            const SizedBox(height: 20),
+            const Text(
+              'QR Code Options',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.share, color: Colors.blue),
+              title: const Text('Share QR Code'),
+              subtitle: const Text('Share your payment QR via apps'),
+              onTap: () {
+                Navigator.pop(context);
+                _shareQRCode(user);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy, color: Colors.green),
+              title: const Text('Copy UPI ID'),
+              subtitle: Text('Copy ${user.upiId ?? 'UPI ID'}'),
+              onTap: () {
+                Navigator.pop(context);
+                if (user.upiId != null) _copyUpiId(user.upiId!);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.qr_code_2, color: Colors.purple),
+              title: const Text('Show Fullscreen QR'),
+              subtitle: const Text('Display QR in fullscreen mode'),
+              onTap: () {
+                Navigator.pop(context);
+                _showFullscreenQR(context, user);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: Colors.orange),
+              title: const Text('QR Code Info'),
+              subtitle: const Text('Learn about UPI QR codes'),
+              onTap: () {
+                Navigator.pop(context);
+                _showQRInfo(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFullscreenQR(BuildContext context, user) {
+    if (user.upiId == null) {
+      _showErrorSnackBar('UPI ID not set up yet');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            title: const Text('Scan to Pay'),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              IconButton(
+                onPressed: () => _shareQRCode(user),
+                icon: const Icon(Icons.share),
+              ),
+            ],
+          ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: QrImageView(
+                    data: _generateUpiQrData(user.upiId!, user.name),
+                    version: QrVersions.auto,
+                    size: 300.0,
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.all(16),
+                    errorCorrectionLevel: QrErrorCorrectLevel.M,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  user.name,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  user.upiId!,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Scan this QR code to pay me instantly',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showQRInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('About UPI QR Codes'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'How UPI QR Codes Work:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text('• QR codes contain your UPI ID and payment details'),
+              Text('• Anyone can scan to send you money instantly'),
+              Text('• Works with all UPI apps (GPay, PhonePe, Paytm, etc.)'),
+              Text('• Secure and encrypted payment method'),
+              SizedBox(height: 16),
+              Text(
+                'Safety Tips:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text('• Only share your QR code with trusted people'),
+              Text('• Never scan unknown QR codes'),
+              Text('• Verify payment details before confirming'),
+              Text('• Keep your UPI PIN secure and private'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQRFromData(String qrData) {
-    return Container(
-      width: 200,
-      height: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: CustomPaint(
-        painter: QRCodePainter(qrData),
-        size: const Size(168, 168),
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

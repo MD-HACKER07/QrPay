@@ -53,6 +53,10 @@ dependencies:
   mobile_scanner: ^6.0.2
   # Allow file selection for QR upload (supports web too)
   file_picker: ^8.1.2
+  # Image picker for camera and gallery
+  image_picker: ^1.0.4
+  # Sharing functionality
+  share_plus: ^7.2.1
   # Decode QR from uploaded images (pure Dart)
   image: ^4.2.0
   zxing2: ^0.2.4
