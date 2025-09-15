@@ -102,73 +102,128 @@ class TransactionService {
 
       // Start atomic transaction in Firestore for real money transfer
       await _firestore.runTransaction((firestoreTransaction) async {
-        // Re-read sender balance to ensure it's still sufficient
-        final senderSnapshot = await firestoreTransaction.get(
-          _firestore.collection('users').doc(fromUserId)
-        );
-        final currentBalance = senderSnapshot.data()?['balance']?.toDouble() ?? 0.0;
-        
-        if (currentBalance < amount) {
-          throw Exception('Insufficient balance. Current: ₹${currentBalance.toStringAsFixed(2)}, Required: ₹${amount.toStringAsFixed(2)}');
+        try {
+          print('Starting Firestore transaction...');
+          
+          // PHASE 1: READ ALL DATA FIRST (Firestore requirement)
+          print('Reading sender balance for user: $fromUserId');
+          final senderSnapshot = await firestoreTransaction.get(
+            _firestore.collection('users').doc(fromUserId)
+          );
+          
+          print('Checking recipient document for: ${toUser.id}');
+          final recipientSnapshot = await firestoreTransaction.get(
+            _firestore.collection('users').doc(toUser.id)
+          );
+          
+          // PHASE 2: VALIDATE READ DATA
+          if (!senderSnapshot.exists) {
+            throw Exception('Sender user document not found');
+          }
+          
+          final senderData = senderSnapshot.data();
+          print('Sender data: $senderData');
+          
+          final currentBalance = senderData?['balance']?.toDouble() ?? 0.0;
+          print('Current balance: $currentBalance, Required: $amount');
+          
+          if (currentBalance < amount) {
+            throw Exception('Insufficient balance. Current: ₹${currentBalance.toStringAsFixed(2)}, Required: ₹${amount.toStringAsFixed(2)}');
+          }
+          
+          // PHASE 3: PERFORM ALL WRITES
+          // Deduct from sender (real money transfer)
+          print('Updating sender balance...');
+          firestoreTransaction.update(
+            _firestore.collection('users').doc(fromUserId),
+            {
+              'balance': FieldValue.increment(-amount),
+              'updatedAt': FieldValue.serverTimestamp(),
+            }
+          );
+          
+          // Add to recipient (real money transfer)
+          if (recipientSnapshot.exists) {
+            print('Updating existing recipient balance...');
+            firestoreTransaction.update(
+              _firestore.collection('users').doc(toUser.id),
+              {
+                'balance': FieldValue.increment(amount),
+                'updatedAt': FieldValue.serverTimestamp(),
+              }
+            );
+          } else {
+            print('Creating new recipient user document...');
+            firestoreTransaction.set(
+              _firestore.collection('users').doc(toUser.id),
+              {
+                'id': toUser.id,
+                'name': toUser.name,
+                'email': toUser.email,
+                'phoneNumber': toUser.phoneNumber,
+                'upiId': toUser.upiId,
+                'balance': amount,
+                'createdAt': FieldValue.serverTimestamp(),
+                'updatedAt': FieldValue.serverTimestamp(),
+              }
+            );
+          }
+          
+          // Save transaction for sender
+          print('Saving sender transaction...');
+          final senderTransactionData = transaction.toJson();
+          print('Sender transaction data: $senderTransactionData');
+          
+          firestoreTransaction.set(
+            _firestore.collection('users').doc(fromUserId).collection('transactions').doc(transactionId),
+            senderTransactionData
+          );
+          
+          // Save transaction for recipient (as receive type)
+          print('Creating recipient transaction...');
+          final receiveTransaction = model.Transaction(
+            id: transactionId,
+            fromUserId: fromUserId,
+            toUserId: toUser.id,
+            fromUpiId: fromUser.upiId!,
+            toUpiId: toUpiId,
+            amount: amount,
+            description: description,
+            type: model.TransactionType.receive,
+            status: model.TransactionStatus.completed,
+            timestamp: DateTime.now(),
+            fromUserName: fromUser.name,
+            toUserName: toUser.name,
+            fromUserPhoto: fromUser.photoUrl,
+            toUserPhoto: toUser.photoUrl,
+            txHash: transaction.txHash,
+          );
+          
+          final receiveTransactionData = receiveTransaction.toJson();
+          print('Recipient transaction data: $receiveTransactionData');
+          
+          firestoreTransaction.set(
+            _firestore.collection('users').doc(toUser.id).collection('transactions').doc(transactionId),
+            receiveTransactionData
+          );
+          
+          // Save to global transactions collection
+          print('Saving to global transactions...');
+          firestoreTransaction.set(
+            _firestore.collection('transactions').doc(transactionId),
+            senderTransactionData
+          );
+          
+          print('Firestore transaction operations completed successfully');
+          
+        } catch (e) {
+          print('Error in Firestore transaction: $e');
+          print('Error type: ${e.runtimeType}');
+          rethrow;
         }
-        
-        // Deduct from sender (real money transfer)
-        firestoreTransaction.update(
-          _firestore.collection('users').doc(fromUserId),
-          {
-            'balance': FieldValue.increment(-amount),
-            'updatedAt': FieldValue.serverTimestamp(),
-          }
-        );
-        
-        // Add to recipient (real money transfer)
-        firestoreTransaction.update(
-          _firestore.collection('users').doc(toUser.id),
-          {
-            'balance': FieldValue.increment(amount),
-            'updatedAt': FieldValue.serverTimestamp(),
-          }
-        );
-        
-        // Save transaction for sender
-        firestoreTransaction.set(
-          _firestore.collection('users').doc(fromUserId).collection('transactions').doc(transactionId),
-          transaction.toJson()
-        );
-        
-        // Save transaction for recipient (as receive type)
-        final receiveTransaction = model.Transaction(
-          id: transactionId,
-          fromUserId: fromUserId,
-          toUserId: toUser.id,
-          fromUpiId: fromUser.upiId!,
-          toUpiId: toUpiId,
-          amount: amount,
-          description: description,
-          type: model.TransactionType.receive,
-          status: model.TransactionStatus.completed,
-          timestamp: DateTime.now(),
-          fromUserName: fromUser.name,
-          toUserName: toUser.name,
-          fromUserPhoto: fromUser.photoUrl,
-          toUserPhoto: toUser.photoUrl,
-          txHash: transaction.txHash,
-        );
-        
-        firestoreTransaction.set(
-          _firestore.collection('users').doc(toUser.id).collection('transactions').doc(transactionId),
-          receiveTransaction.toJson()
-        );
-        
-        // Save to global transactions collection
-        firestoreTransaction.set(
-          _firestore.collection('transactions').doc(transactionId),
-          transaction.toJson()
-        );
       });
 
-      // Update transaction status to completed immediately for both users
-      await _updateTransactionStatus(transactionId, model.TransactionStatus.completed);
+      print('Transaction completed successfully: $transactionId');
       
       return transaction.copyWith(status: model.TransactionStatus.completed);
       
@@ -208,10 +263,12 @@ class TransactionService {
   // Get user transactions
   static Future<List<model.Transaction>> getUserTransactions(String userId, {int limit = 50}) async {
     try {
+      print('Getting transactions for user: $userId');
+      
       // First check if user document exists
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) {
-        // Return empty list if user doesn't exist yet
+        print('User document does not exist for: $userId');
         return [];
       }
 
@@ -223,11 +280,23 @@ class TransactionService {
           .limit(limit)
           .get();
       
-      return querySnapshot.docs
-          .map((doc) => model.Transaction.fromJson(doc.data()))
-          .toList();
+      print('Found ${querySnapshot.docs.length} transaction documents');
+      
+      final transactions = querySnapshot.docs.map((doc) {
+        try {
+          final data = doc.data();
+          print('Transaction data: $data');
+          return model.Transaction.fromJson(data);
+        } catch (e) {
+          print('Error parsing transaction ${doc.id}: $e');
+          return null;
+        }
+      }).where((t) => t != null).cast<model.Transaction>().toList();
+      
+      print('Successfully parsed ${transactions.length} transactions');
+      return transactions;
     } catch (e) {
-      // Return empty list instead of throwing exception for better UX
+      print('Error getting user transactions: $e');
       return [];
     }
   }
@@ -245,43 +314,10 @@ class TransactionService {
     }
   }
 
-  // Update transaction status
-  static Future<void> _updateTransactionStatus(String transactionId, model.TransactionStatus status) async {
-    try {
-      final batch = _firestore.batch();
-      
-      // Update in global transactions
-      batch.update(
-        _firestore.collection('transactions').doc(transactionId),
-        {'status': status.toString()}
-      );
-      
-      // Get transaction to find user IDs
-      final transactionDoc = await _firestore.collection('transactions').doc(transactionId).get();
-      if (transactionDoc.exists) {
-        final transaction = model.Transaction.fromJson(transactionDoc.data()!);
-        
-        // Update in both users' transaction collections
-        batch.update(
-          _firestore.collection('users').doc(transaction.fromUserId).collection('transactions').doc(transactionId),
-          {'status': status.toString()}
-        );
-        
-        batch.update(
-          _firestore.collection('users').doc(transaction.toUserId).collection('transactions').doc(transactionId),
-          {'status': status.toString()}
-        );
-      }
-      
-      await batch.commit();
-    } catch (e) {
-      throw Exception('Failed to update transaction status: $e');
-    }
-  }
 
   // Generate mock transaction hash
   static String _generateTxHash(String transactionId) {
-    final random = Random();
+    final random = Random.secure();
     final chars = '0123456789abcdef';
     return List.generate(64, (index) => chars[random.nextInt(chars.length)]).join();
   }

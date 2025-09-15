@@ -45,7 +45,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Refresh transactions when returning to home screen
-    Provider.of<TransactionProvider>(context, listen: false).loadTransactions();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<TransactionProvider>(context, listen: false).loadTransactions();
+    });
   }
 
   @override

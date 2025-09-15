@@ -61,26 +61,68 @@ class Transaction {
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
     return Transaction(
-      id: json['id'],
-      fromUserId: json['fromUserId'],
-      toUserId: json['toUserId'],
-      fromUpiId: json['fromUpiId'],
-      toUpiId: json['toUpiId'],
-      amount: json['amount'].toDouble(),
-      description: json['description'],
+      id: json['id'] ?? '',
+      fromUserId: json['fromUserId'] ?? '',
+      toUserId: json['toUserId'] ?? '',
+      fromUpiId: json['fromUpiId'] ?? '',
+      toUpiId: json['toUpiId'] ?? '',
+      amount: (json['amount'] ?? 0).toDouble(),
+      description: json['description'] ?? '',
       type: TransactionType.values.firstWhere(
         (e) => e.toString() == json['type'],
+        orElse: () => TransactionType.send,
       ),
       status: TransactionStatus.values.firstWhere(
         (e) => e.toString() == json['status'],
+        orElse: () => TransactionStatus.pending,
       ),
-      timestamp: DateTime.parse(json['timestamp']),
+      timestamp: json['timestamp'] != null 
+          ? DateTime.parse(json['timestamp']) 
+          : DateTime.now(),
       signature: json['signature'],
       txHash: json['txHash'],
       fromUserName: json['fromUserName'],
       toUserName: json['toUserName'],
       fromUserPhoto: json['fromUserPhoto'],
       toUserPhoto: json['toUserPhoto'],
+    );
+  }
+
+  Transaction copyWith({
+    String? id,
+    String? fromUserId,
+    String? toUserId,
+    String? fromUpiId,
+    String? toUpiId,
+    double? amount,
+    String? description,
+    TransactionType? type,
+    TransactionStatus? status,
+    DateTime? timestamp,
+    String? signature,
+    String? txHash,
+    String? fromUserName,
+    String? toUserName,
+    String? fromUserPhoto,
+    String? toUserPhoto,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      fromUserId: fromUserId ?? this.fromUserId,
+      toUserId: toUserId ?? this.toUserId,
+      fromUpiId: fromUpiId ?? this.fromUpiId,
+      toUpiId: toUpiId ?? this.toUpiId,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      timestamp: timestamp ?? this.timestamp,
+      signature: signature ?? this.signature,
+      txHash: txHash ?? this.txHash,
+      fromUserName: fromUserName ?? this.fromUserName,
+      toUserName: toUserName ?? this.toUserName,
+      fromUserPhoto: fromUserPhoto ?? this.fromUserPhoto,
+      toUserPhoto: toUserPhoto ?? this.toUserPhoto,
     );
   }
 }

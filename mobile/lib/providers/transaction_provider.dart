@@ -36,9 +36,14 @@ class TransactionProvider extends ChangeNotifier {
         }
       }
 
-      _transactions = await TransactionService.getUserTransactions(currentUser.id);
+      print('Loading transactions for user: ${currentUser.id}');
+      final transactions = await TransactionService.getUserTransactions(currentUser.id);
+      print('Loaded ${transactions.length} transactions');
+      
+      _transactions = transactions;
       _clearError();
     } catch (e) {
+      print('Error loading transactions: $e');
       _setError('Failed to load transactions: $e');
     } finally {
       _setLoading(false);
@@ -51,15 +56,18 @@ class TransactionProvider extends ChangeNotifier {
     required double amount,
     required String description,
   }) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
+    _isLoading = true;
+    _clearError();
+    notifyListeners();
 
+    try {
       final currentUser = AuthService.getCurrentUser();
       if (currentUser == null) {
         throw Exception('User not authenticated');
       }
 
+      print('Starting payment: $amount to $toUpiId');
+      
       final transaction = await TransactionService.processUpiPayment(
         fromUserId: currentUser.id,
         toUpiId: toUpiId,
@@ -67,18 +75,36 @@ class TransactionProvider extends ChangeNotifier {
         description: description,
       );
 
+      print('Payment processed successfully: ${transaction.id}');
+
       // Add to local transactions list immediately
       _transactions.insert(0, transaction);
       
       // Force refresh user balance in AuthService immediately
-      await AuthService.refreshCurrentUser();
+      try {
+        await AuthService.refreshCurrentUser();
+        print('User balance refreshed');
+      } catch (e) {
+        print('Warning: Failed to refresh user balance: $e');
+        // Don't fail the transaction for this
+      }
       
-      _isLoading = false;
-      notifyListeners();
+      // Also reload all transactions to ensure consistency
+      try {
+        await loadTransactions();
+        print('Transactions reloaded');
+      } catch (e) {
+        print('Warning: Failed to reload transactions: $e');
+        // Don't fail the transaction for this
+      }
+      
     } catch (e) {
+      print('Payment failed: $e');
+      _setError('Payment failed: ${e.toString()}');
+      rethrow;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      rethrow;
     }
   }
 
