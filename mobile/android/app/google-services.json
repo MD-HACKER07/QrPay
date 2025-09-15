@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "850218274514",
+    "project_id": "qrpay001",
+    "storage_bucket": "qrpay001.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:850218274514:android:266a82472ff6d91ae5a70b",
+        "android_client_info": {
+          "package_name": "QR.pay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "850218274514-7t8tvb2m87rda4cs2m9ef015jq5i3vdb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC50e16P9YnIKr00e3MG1xzFbC9RZLRtqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "850218274514-7t8tvb2m87rda4cs2m9ef015jq5i3vdb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "850218274514-t6vddn2phdlr3sa7cpshmfcccgl97pup.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "qrpay"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
