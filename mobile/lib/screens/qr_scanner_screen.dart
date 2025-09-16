@@ -113,11 +113,12 @@ class _QRScannerScreenState extends State<QRScannerScreen> with WidgetsBindingOb
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 4,
-            child: Stack(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              flex: 4,
+              child: Stack(
               children: [
                 if (_hasPermission)
                   MobileScanner(
@@ -402,6 +403,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> with WidgetsBindingOb
             ),
           ),
         ],
+        ),
       ),
     );
   }

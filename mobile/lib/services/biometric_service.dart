@@ -1,5 +1,6 @@
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BiometricService {
@@ -8,6 +9,11 @@ class BiometricService {
   /// Check if biometric authentication is available on the device
   static Future<bool> isBiometricAvailable() async {
     try {
+      // Biometric authentication is not supported on web
+      if (kIsWeb) {
+        return false;
+      }
+      
       final bool isAvailable = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
       return isAvailable && isDeviceSupported;
@@ -20,6 +26,11 @@ class BiometricService {
   /// Get available biometric types (fingerprint, face, etc.)
   static Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
+      // Return empty list for web platform
+      if (kIsWeb) {
+        return [];
+      }
+      
       return await _localAuth.getAvailableBiometrics();
     } catch (e) {
       print('Error getting available biometrics: $e');
@@ -34,8 +45,15 @@ class BiometricService {
     bool stickyAuth = true,
   }) async {
     try {
+      // For web platform, simulate biometric unavailability
+      if (kIsWeb) {
+        print('Biometric authentication not supported on web platform');
+        return false;
+      }
+      
       final bool isAvailable = await isBiometricAvailable();
       if (!isAvailable) {
+        print('Biometric authentication not available on this device');
         return false;
       }
 
@@ -156,6 +174,17 @@ class BiometricService {
     bool allowFallback = true,
   }) async {
     final preferredMethod = await getPreferredAuthMethod();
+    final biometricAvailable = await isBiometricAvailable();
+    
+    // If on web or biometric not available, always use PIN
+    if (kIsWeb || !biometricAvailable) {
+      return AuthResult(
+        success: false, 
+        method: AuthenticationMethod.pin, 
+        requiresPinFallback: true,
+        error: kIsWeb ? 'Biometric authentication not supported on web' : 'Biometric authentication not available'
+      );
+    }
     
     switch (preferredMethod) {
       case AuthenticationMethod.biometric:

@@ -1,12 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/qr_service.dart';
 import '../services/biometric_service.dart';
+import '../widgets/auth_method_dialog.dart';
 import 'qr_scanner_screen.dart';
 import 'payment_success_screen.dart';
 import 'pin_entry_screen.dart';
-import 'biometric_auth_screen.dart';
 import '../services/mock_transaction_service.dart';
 import '../services/transaction_service.dart';
 
@@ -176,47 +177,45 @@ class _ScanPayScreenState extends State<ScanPayScreen> {
   }
 
   Future<bool> _showAuthenticationFlow() async {
-    // Check user's preferred authentication method
-    final authResult = await BiometricService.authenticateUser(
-      reason: 'Please authenticate to authorize this payment',
-      allowFallback: true,
+    // Show authentication method selection dialog
+    final completer = Completer<bool>();
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AuthMethodDialog(
+        title: 'Authenticate Payment',
+        subtitle: 'Choose your preferred authentication method',
+        onBiometricSelected: () async {
+          final success = await _authenticateWithBiometric();
+          completer.complete(success);
+        },
+        onPinSelected: () async {
+          final success = await _showPinEntry();
+          completer.complete(success);
+        },
+      ),
     );
+    
+    return completer.future;
+  }
 
-    if (authResult.success) {
-      return true;
-    }
-
-    if (authResult.requiresPinFallback) {
-      // Show biometric screen first if biometric is preferred
-      if (authResult.method == AuthenticationMethod.biometric) {
-        final biometricResult = await Navigator.push<bool>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BiometricAuthScreen(
-              title: 'Authenticate Payment',
-              subtitle: 'Please authenticate to authorize this payment',
-              onAuthSuccess: () {
-                Navigator.pop(context, true);
-              },
-              onFallbackToPin: () {
-                Navigator.pop(context);
-                _showPinEntry();
-              },
-              allowPinFallback: true,
-            ),
-          ),
-        );
-        
-        if (biometricResult == true) {
-          return true;
-        }
-      }
+  Future<bool> _authenticateWithBiometric() async {
+    try {
+      final success = await BiometricService.authenticateWithBiometrics(
+        reason: 'Please authenticate to authorize this payment',
+      );
       
-      // Fallback to PIN entry
+      if (success) {
+        return true;
+      } else {
+        // Fallback to PIN if biometric fails
+        return await _showPinEntry();
+      }
+    } catch (e) {
+      // Fallback to PIN if biometric fails
       return await _showPinEntry();
     }
-
-    return false;
   }
 
   Future<bool> _showPinEntry() async {
